@@ -144,3 +144,4 @@ docs
 emails.txt
 refresh-tokens*.txt
 accounts-token*.txt
+client_secret*.json
