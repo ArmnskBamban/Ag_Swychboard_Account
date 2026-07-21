@@ -1,0 +1,187 @@
+{
+  "name": "ag-multi-account-switchboard",
+  "displayName": "AG Multi-Account Switchboard",
+  "description": "Switch between Antigravity accounts instantly. Monitor AI quotas, token budgets and reset timers — all in one sidebar panel.",
+  "icon": "assets/icon.png",
+  "version": "3.2.3",
+  "publisher": "erennyuksell",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArmnskBamban/Ag_Swychboard_Account.git"
+  },
+  "homepage": "https://github.com/ArmnskBamban/Ag_Swychboard_Account#readme",
+  "bugs": {
+    "url": "https://github.com/ArmnskBamban/Ag_Swychboard_Account/issues"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "antigravity",
+    "ai",
+    "quota",
+    "multi-account",
+    "switchboard"
+  ],
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ag-switchboard",
+          "title": "AG Switchboard",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ag-switchboard": [
+        {
+          "type": "webview",
+          "id": "ag.quotaView",
+          "name": "Accounts",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ag.refreshQuota",
+        "title": "AG Switchboard: Refresh Quota",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ag.addAccount",
+        "title": "AG Switchboard: Add Account",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ag.removeAccount",
+        "title": "AG Switchboard: Remove Account",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ag.addAccountByToken",
+        "title": "AG Switchboard: Add Account via Token",
+        "icon": "$(key)"
+      },
+      {
+        "command": "ag.importAccountsByTokenFile",
+        "title": "AG Switchboard: Import Accounts from Token File",
+        "icon": "$(file-add)"
+      },
+      {
+        "command": "ag.collectAccountsFromEmailFile",
+        "title": "AG Switchboard: Collect Accounts from Email List",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "ag.openUsageStats",
+        "title": "AG Switchboard: Open Usage Statistics",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "ag.fixConversations",
+        "title": "AG Switchboard: Fix Missing Conversations",
+        "icon": "$(wrench)"
+      }
+    ],
+    "menus": {},
+    "configuration": {
+      "title": "AG Switchboard",
+      "properties": {
+        "ag-switchboard.modelPricing": {
+          "type": "object",
+          "description": "Model pricing per 1M tokens. Keys: model tier. Values: { input, output, cache }.",
+          "default": {
+            "opus": {
+              "input": 5,
+              "output": 25,
+              "cache": 0.5
+            },
+            "sonnet": {
+              "input": 3,
+              "output": 15,
+              "cache": 0.3
+            },
+            "haiku": {
+              "input": 1,
+              "output": 5,
+              "cache": 0.1
+            },
+            "gemini-3-pro": {
+              "input": 2,
+              "output": 12,
+              "cache": 0.2
+            },
+            "gemini-3-flash": {
+              "input": 0.5,
+              "output": 3,
+              "cache": 0.05
+            },
+            "gemini-2-pro": {
+              "input": 1.25,
+              "output": 10,
+              "cache": 0.125
+            },
+            "gemini-2-flash": {
+              "input": 0.3,
+              "output": 2.5,
+              "cache": 0.03
+            },
+            "flash-lite": {
+              "input": 0.1,
+              "output": 0.4,
+              "cache": 0.01
+            },
+            "gpt-oss": {
+              "input": 2.5,
+              "output": 10,
+              "cache": 0.25
+            }
+          }
+        },
+        "ag-switchboard.diagnosticMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable verbose file logging to /tmp/ag-ctx-diag.log for troubleshooting. Restart not required."
+        },
+        "ag-switchboard.oauthClientId": {
+          "type": "string",
+          "default": "",
+          "description": "Google OAuth client ID used for adding, importing, and collecting Antigravity accounts. Can also be provided with AG_SWITCHBOARD_GOOGLE_CLIENT_ID."
+        },
+        "ag-switchboard.oauthClientSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Google OAuth client secret used for token exchange. Can also be provided with AG_SWITCHBOARD_GOOGLE_CLIENT_SECRET."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "tsc -p ./tsconfig.extension.json",
+    "compile:webview": "node tools/build-webview.mjs",
+    "collect:tokens": "node tools/collect-refresh-tokens.mjs",
+    "watch": "tsc -watch -p ./tsconfig.extension.json",
+    "watch:webview": "node esbuild.webview.mjs --watch",
+    "package": "npm run compile && vsce package",
+    "publish:ovsx": "ovsx publish *.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.4.0"
+  }
+}
