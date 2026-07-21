@@ -4,6 +4,8 @@ export const OAUTH_CLIENT_ID_ENV = 'AG_SWITCHBOARD_GOOGLE_CLIENT_ID';
 export const OAUTH_CLIENT_SECRET_ENV = 'AG_SWITCHBOARD_GOOGLE_CLIENT_SECRET';
 export const CLIENT_ID = process.env[OAUTH_CLIENT_ID_ENV] || '';
 export const CLIENT_SECRET = process.env[OAUTH_CLIENT_SECRET_ENV] || '';
+export const OAUTH_CLIENT_ID_SECRET_KEY = 'ag.oauth.clientId';
+export const OAUTH_CLIENT_SECRET_SECRET_KEY = 'ag.oauth.clientSecret';
 
 // Google OAuth endpoints
 export const TOKEN_URL = 'https://oauth2.googleapis.com/token';

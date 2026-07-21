@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.4] - 2026-07-21
+
+### Added
+- `AG Switchboard: Setup Google OAuth Credentials` command. Users can select a Google Cloud `client_secret.json` file, and the extension stores the OAuth client ID and secret in SecretStorage.
+
+### Changed
+- Google OAuth flows now read credentials from SecretStorage first, then fall back to user settings or environment variables.
+
 ## [3.2.3] — 2026-07-21
 
 ### Added

@@ -86,6 +86,10 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('ag.refreshQuota', () => quotaManager.refresh()),
 
+        vscode.commands.registerCommand('ag.setupOAuthCredentials', async () => {
+            await accountManager.getAuthService().setupOAuthCredentialsFromFile();
+        }),
+
         vscode.commands.registerCommand('ag.addAccount', async () => {
             const success = await accountManager.addAccount();
             if (success) {

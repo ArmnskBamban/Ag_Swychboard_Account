@@ -20,7 +20,7 @@ Alur normal untuk user biasa:
 
 1. Download file VSIX dari halaman release.
 2. Install VSIX ke Antigravity IDE.
-3. Isi Google OAuth credential satu kali.
+3. Jalankan setup OAuth credential satu kali.
 4. Jalankan command untuk collect akun dari file email.
 5. Login dan approve akun di browser incognito/private yang terbuka.
 6. Buka panel AG Switchboard dan gunakan akun yang sudah masuk.
@@ -62,6 +62,20 @@ Credential ini tidak dimasukkan ke source code supaya aman untuk GitHub public d
 10. Simpan nilainya, atau download file JSON dari client tersebut.
 
 ### Cara Mengisi Di Antigravity
+
+Cara paling mudah:
+
+1. Tekan `Ctrl + Shift + P`.
+2. Jalankan command:
+
+```txt
+AG Switchboard: Setup Google OAuth Credentials
+```
+
+3. Pilih file `client_secret.json` yang didownload dari Google Cloud.
+4. Extension akan membaca `client_id` dan `client_secret`, lalu menyimpannya ke SecretStorage.
+
+Cara manual lewat settings:
 
 1. Tekan `Ctrl + Shift + P`.
 2. Jalankan `Preferences: Open User Settings (JSON)`.
@@ -166,6 +180,7 @@ AG Switchboard: Add Account via Token
 
 | Command | Fungsi |
 | --- | --- |
+| `AG Switchboard: Setup Google OAuth Credentials` | Import `client_secret.json` dari Google Cloud |
 | `AG Switchboard: Add Account` | Tambah satu akun lewat Google OAuth |
 | `AG Switchboard: Add Account via Token` | Tambah satu akun dari refresh token |
 | `AG Switchboard: Collect Accounts from Email List` | Tambah banyak akun dari file email |
@@ -205,7 +220,7 @@ npm.cmd run package
 Output akan menjadi file seperti:
 
 ```txt
-ag-multi-account-switchboard-3.2.3.vsix
+ag-multi-account-switchboard-3.2.4.vsix
 ```
 
 File VSIX itu bisa diinstall lewat:
@@ -218,7 +233,7 @@ Extensions: Install from VSIX...
 
 | Masalah | Solusi |
 | --- | --- |
-| `Google OAuth credentials are not configured` | Isi `ag-switchboard.oauthClientId` dan `ag-switchboard.oauthClientSecret` di User Settings JSON |
+| `Google OAuth credentials are not configured` | Jalankan `AG Switchboard: Setup Google OAuth Credentials`, atau isi settings OAuth manual |
 | `redirect_uri_mismatch` | Pastikan OAuth client dibuat dengan type `Desktop app` |
 | Login Google menampilkan app belum diverifikasi | Tambahkan email ke `Test users` di OAuth consent screen |
 | Browser terbuka tapi lama loading | Tunggu sebentar, reload tab, atau jalankan ulang command |

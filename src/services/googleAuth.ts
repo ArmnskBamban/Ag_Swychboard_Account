@@ -7,6 +7,7 @@ import { existsSync } from 'fs';
 import {
     CLIENT_ID as ENV_CLIENT_ID, CLIENT_SECRET as ENV_CLIENT_SECRET, TOKEN_URL, AUTH_URL,
     USERINFO_URL, OAUTH_SCOPES, OAUTH_CALLBACK_TIMEOUT_MS,
+    OAUTH_CLIENT_ID_SECRET_KEY, OAUTH_CLIENT_SECRET_SECRET_KEY,
 } from '../constants';
 import { getOAuthSuccessHtml } from '../templates/oauthSuccess';
 import { createLogger } from '../utils/logger';
@@ -29,10 +30,48 @@ interface OAuthCredentials {
 }
 
 export class GoogleAuthService {
+    constructor(private readonly context?: vscode.ExtensionContext) {}
+
+    async setupOAuthCredentialsFromFile(): Promise<boolean> {
+        if (!this.context) {
+            vscode.window.showErrorMessage('OAuth credential setup is unavailable because extension storage is not initialized.');
+            return false;
+        }
+
+        const picked = await vscode.window.showOpenDialog({
+            title: 'Select Google OAuth client_secret.json',
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            filters: {
+                'Google OAuth JSON': ['json'],
+                'All files': ['*'],
+            },
+        });
+
+        const fileUri = picked?.[0];
+        if (!fileUri) return false;
+
+        try {
+            const bytes = await vscode.workspace.fs.readFile(fileUri);
+            const credentials = this.parseOAuthCredentialsJson(Buffer.from(bytes).toString('utf8'));
+
+            await this.context.secrets.store(OAUTH_CLIENT_ID_SECRET_KEY, credentials.clientId);
+            await this.context.secrets.store(OAUTH_CLIENT_SECRET_SECRET_KEY, credentials.clientSecret);
+
+            vscode.window.showInformationMessage(
+                `Google OAuth credentials saved for ${this.maskClientId(credentials.clientId)}.`
+            );
+            return true;
+        } catch (err: any) {
+            vscode.window.showErrorMessage(`Failed to setup Google OAuth credentials: ${err?.message || err}`);
+            return false;
+        }
+    }
 
     /** Exchange an authorization code for access + refresh tokens */
     async exchangeCode(code: string, redirectUri: string): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
-        const credentials = this.getOAuthCredentials();
+        const credentials = await this.getOAuthCredentials();
         const body = new URLSearchParams({
             client_id: credentials.clientId,
             client_secret: credentials.clientSecret,
@@ -46,7 +85,7 @@ export class GoogleAuthService {
 
     /** Refresh an expired access token using the stored refresh token */
     async refreshAccessToken(refreshToken: string): Promise<{ access_token: string; expires_in: number; refresh_token?: string }> {
-        const credentials = this.getOAuthCredentials();
+        const credentials = await this.getOAuthCredentials();
         const body = new URLSearchParams({
             client_id: credentials.clientId,
             client_secret: credentials.clientSecret,
@@ -85,16 +124,15 @@ export class GoogleAuthService {
         tokens: { access_token: string; refresh_token: string; expires_in: number };
         userInfo: { email: string; name: string };
     } | null> {
-        return new Promise((resolve) => {
-            let credentials: OAuthCredentials;
-            try {
-                credentials = this.getOAuthCredentials();
-            } catch (err: any) {
-                vscode.window.showErrorMessage(err?.message || String(err));
-                resolve(null);
-                return;
-            }
+        let credentials: OAuthCredentials;
+        try {
+            credentials = await this.getOAuthCredentials();
+        } catch (err: any) {
+            vscode.window.showErrorMessage(err?.message || String(err));
+            return null;
+        }
 
+        return new Promise((resolve) => {
             const port = 19876 + Math.floor(Math.random() * 100);
             const redirectUri = `http://127.0.0.1:${port}/callback`;
             const state = crypto.randomBytes(16).toString('hex');
@@ -186,18 +224,61 @@ export class GoogleAuthService {
 
     // --- Private ---
 
-    private getOAuthCredentials(): OAuthCredentials {
+    private async getOAuthCredentials(): Promise<OAuthCredentials> {
+        const stored = await this.getStoredOAuthCredentials();
         const cfg = vscode.workspace.getConfiguration('ag-switchboard');
-        const clientId = (cfg.get<string>('oauthClientId', '') || ENV_CLIENT_ID).trim();
-        const clientSecret = (cfg.get<string>('oauthClientSecret', '') || ENV_CLIENT_SECRET).trim();
+        const clientId = (stored?.clientId || cfg.get<string>('oauthClientId', '') || ENV_CLIENT_ID).trim();
+        const clientSecret = (stored?.clientSecret || cfg.get<string>('oauthClientSecret', '') || ENV_CLIENT_SECRET).trim();
 
         if (!clientId || !clientSecret) {
             throw new Error(
-                'Google OAuth credentials are not configured. Set ag-switchboard.oauthClientId and ag-switchboard.oauthClientSecret in User Settings, or set AG_SWITCHBOARD_GOOGLE_CLIENT_ID and AG_SWITCHBOARD_GOOGLE_CLIENT_SECRET.'
+                'Google OAuth credentials are not configured. Run "AG Switchboard: Setup Google OAuth Credentials", set ag-switchboard.oauthClientId and ag-switchboard.oauthClientSecret, or set AG_SWITCHBOARD_GOOGLE_CLIENT_ID and AG_SWITCHBOARD_GOOGLE_CLIENT_SECRET.'
             );
         }
 
         return { clientId, clientSecret };
+    }
+
+    private async getStoredOAuthCredentials(): Promise<OAuthCredentials | null> {
+        if (!this.context) return null;
+
+        const clientId = (await this.context.secrets.get(OAUTH_CLIENT_ID_SECRET_KEY))?.trim() || '';
+        const clientSecret = (await this.context.secrets.get(OAUTH_CLIENT_SECRET_SECRET_KEY))?.trim() || '';
+        if (!clientId || !clientSecret) return null;
+
+        return { clientId, clientSecret };
+    }
+
+    private parseOAuthCredentialsJson(content: string): OAuthCredentials {
+        let parsed: any;
+        try {
+            parsed = JSON.parse(content.replace(/^\uFEFF/, ''));
+        } catch {
+            throw new Error('Selected file is not valid JSON.');
+        }
+
+        if (parsed?.web && !parsed?.installed) {
+            throw new Error('This looks like a Web application OAuth client. Create a Desktop app client in Google Cloud, then download its JSON file.');
+        }
+
+        const source = parsed?.installed || parsed;
+        const clientId = typeof source?.client_id === 'string' ? source.client_id.trim() : '';
+        const clientSecret = typeof source?.client_secret === 'string' ? source.client_secret.trim() : '';
+
+        if (!clientId || !clientSecret) {
+            throw new Error('Could not find client_id and client_secret. Select the Desktop app client_secret.json from Google Cloud.');
+        }
+
+        if (!clientId.endsWith('.apps.googleusercontent.com')) {
+            throw new Error('client_id does not look like a Google OAuth client ID.');
+        }
+
+        return { clientId, clientSecret };
+    }
+
+    private maskClientId(clientId: string): string {
+        if (clientId.length <= 28) return clientId;
+        return `${clientId.slice(0, 10)}...${clientId.slice(-18)}`;
     }
 
     private privateArgsFor(kind: string, url: string): string[] {

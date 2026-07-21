@@ -48,10 +48,12 @@ export class AccountManager {
     private _onDidChange = new vscode.EventEmitter<void>();
     public readonly onDidChange = this._onDidChange.event;
 
-    private readonly authService = new GoogleAuthService();
+    private readonly authService: GoogleAuthService;
     private readonly quotaApi = new QuotaApiService();
 
-    constructor(private readonly context: vscode.ExtensionContext) {}
+    constructor(private readonly context: vscode.ExtensionContext) {
+        this.authService = new GoogleAuthService(context);
+    }
 
     getAuthService(): GoogleAuthService { return this.authService; }
 
